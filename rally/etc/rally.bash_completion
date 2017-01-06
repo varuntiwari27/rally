@@ -1,0 +1,91 @@
+#!/bin/bash
+
+# Standalone _filedir() alternative.
+# This exempts from dependence of bash completion routines
+function _rally_filedir()
+{
+    test "${1}" \
+        && COMPREPLY=( \
+            $(compgen -f -- "${cur}" | grep -E "${1}") \
+            $(compgen -o plusdirs -- "${cur}") ) \
+        || COMPREPLY=( \
+            $(compgen -o plusdirs -f -- "${cur}") \
+            $(compgen -d -- "${cur}") )
+}
+
+_rally()
+{
+    declare -A SUBCOMMANDS
+    declare -A OPTS
+
+    OPTS["deployment_check"]="--deployment"
+    OPTS["deployment_config"]="--deployment"
+    OPTS["deployment_create"]="--name --fromenv --filename --no-use"
+    OPTS["deployment_destroy"]="--deployment"
+    OPTS["deployment_list"]=""
+    OPTS["deployment_recreate"]="--deployment"
+    OPTS["deployment_show"]="--deployment"
+    OPTS["deployment_use"]="--deployment"
+    OPTS["plugin_list"]="--name --namespace"
+    OPTS["plugin_show"]="--name --namespace"
+    OPTS["task_abort"]="--uuid --soft"
+    OPTS["task_delete"]="--force --uuid"
+    OPTS["task_detailed"]="--uuid --iterations-data"
+    OPTS["task_export"]="--uuid --connection"
+    OPTS["task_list"]="--deployment --all-deployments --status --uuids-only"
+    OPTS["task_report"]="--tasks --out --open --html --html-static --junit"
+    OPTS["task_results"]="--uuid"
+    OPTS["task_sla-check"]="--uuid --json"
+    OPTS["task_sla_check"]="--uuid --json"
+    OPTS["task_start"]="--deployment --task --task-args --task-args-file --tag --no-use --abort-on-sla-failure"
+    OPTS["task_status"]="--uuid"
+    OPTS["task_trends"]="--out --open --tasks"
+    OPTS["task_use"]="--uuid"
+    OPTS["task_validate"]="--deployment --task --task-args --task-args-file"
+    OPTS["verify_add-verifier-ext"]="--id --source --version --extra-settings"
+    OPTS["verify_configure-verifier"]="--verifier-id --deployment-id --recreate --add-options --replace-by --show"
+    OPTS["verify_create-verifier"]="--name --type --namespace --source --version --system-wide --extra-settings --no-use"
+    OPTS["verify_delete"]="--uuid"
+    OPTS["verify_delete-verifier"]="--verifier-id --deployment-id --force"
+    OPTS["verify_delete-verifier-ext"]="--id --name"
+    OPTS["verify_import"]="--verifier-id --deployment-id --file --run-args --no-use"
+    OPTS["verify_list"]="--verifier-id --deployment-id --status"
+    OPTS["verify_list-plugins"]="--namespace"
+    OPTS["verify_list-verifier-exts"]="--id"
+    OPTS["verify_list-verifier-tests"]="--id --pattern"
+    OPTS["verify_list-verifiers"]="--status"
+    OPTS["verify_report"]="--uuid --html --file --open"
+    OPTS["verify_show"]="--uuid --sort-by --detailed"
+    OPTS["verify_start"]="--verifier-id --deployment-id --pattern --concurrency --load-list --skip-list --xfail-list --failed --no-use"
+    OPTS["verify_update-verifier"]="--id --update-venv --version --system-wide --no-system-wide"
+    OPTS["verify_use"]="--uuid"
+    OPTS["verify_use-verifier"]="--id"
+
+    for OPT in ${!OPTS[*]} ; do
+        CMD=${OPT%%_*}
+        CMDSUB=${OPT#*_}
+        SUBCOMMANDS[${CMD}]+="${CMDSUB} "
+    done
+
+    COMMANDS="${!SUBCOMMANDS[*]}"
+    COMPREPLY=()
+
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+    local prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    if [[ $cur =~ ^(\.|\~|\/) ]] || [[ $prev =~ ^--out(|put-file)$ ]] ; then
+        _rally_filedir
+    elif [[ $prev =~ ^--(task|filename)$ ]] ; then
+        _rally_filedir "\.json|\.yaml|\.yml"
+    elif [ $COMP_CWORD == "1" ] ; then
+        COMPREPLY=($(compgen -W "$COMMANDS" -- ${cur}))
+    elif [ $COMP_CWORD == "2" ] ; then
+        COMPREPLY=($(compgen -W "${SUBCOMMANDS[${prev}]}" -- ${cur}))
+    else
+        COMMAND="${COMP_WORDS[1]}_${COMP_WORDS[2]}"
+        COMPREPLY=($(compgen -W "${OPTS[$COMMAND]}" -- ${cur}))
+    fi
+    return 0
+}
+
+complete -o filenames -F _rally rally
