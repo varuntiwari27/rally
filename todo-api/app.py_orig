@@ -1,0 +1,84 @@
+#!flask/bin/python
+from flask import Flask, jsonify, abort, request
+import subprocess
+import json
+import parser
+from subprocess import Popen, PIPE
+app = Flask(__name__)
+
+@app.route('/list', methods=['GET'])
+def get_list():
+    cmd = ["rally","verify","list"]
+    p = subprocess.Popen(cmd, stdout = subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            stdin=subprocess.PIPE)
+    out,err = p.communicate()
+    return jsonify({'out': out})
+
+@app.route('/dlist')
+def get_dlist():
+    cmd = ["rally","deployment","list"]
+    p = subprocess.Popen(cmd, stdout = subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            stdin=subprocess.PIPE)
+    out,err = p.communicate()
+    return out
+
+
+@app.route('/dshow')
+def get_dshow():
+    cmd = ["rally","deployment","show"]
+    p = subprocess.Popen(cmd, stdout = subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            stdin=subprocess.PIPE)
+    out,err = p.communicate()
+    return out
+
+@app.route('/deploymentshow', methods=['GET', 'POST'])
+def deploymentshow():
+    x = request.json
+    y = json.dumps(x)
+    print("value : ", y)
+    print("name :", x["name"])
+    print("action :", x["action"])
+    print("cloud :", x["cloud"])
+    cmd = ["rally",x['name'],x['action'],x['cloud']]
+    p = subprocess.Popen(cmd, stdout = subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            stdin=subprocess.PIPE)
+    out,err = p.communicate()
+    return out      
+
+
+@app.route('/deploymentuse', methods=['POST'])
+def samplepost():
+    x = request.json
+    y = json.dumps(x)
+    print("value : ", y)
+    print("name :", x["cloud_name"])
+    print("User :", x["username"])
+    cmd = ["rally","deployment","use",x['cloud_name']]
+    p = subprocess.Popen(cmd, stdout = subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            stdin=subprocess.PIPE)
+    out,err = p.communicate()
+    return out  
+
+
+@app.route('/generic', methods=['POST'])
+def generic():
+    x = request.json
+    # y = json.dumps(x)
+    print("action1 :", x["action1"])
+    print("action2 :", x["action2"])
+    print("cloud_name :", x["cloud_name"])
+    cmd = ["rally",x['action1'],x['action2'],x['cloud_name']]
+    p = subprocess.Popen(cmd, stdout = subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            stdin=subprocess.PIPE)
+    out,err = p.communicate()
+    return out  
+
+   
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', debug=True)
